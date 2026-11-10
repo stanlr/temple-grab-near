@@ -93,6 +93,8 @@ function App() {
       const collisionY = 77;
       const hit = g.items.find((item) => item.lane === g.lane && item.y > collisionY - 5 && item.y < collisionY + 8);
       if (hit?.type === 'rock') {
+        setScore(Math.floor(g.score));
+        setDistance(Math.floor(g.score * 1.8));
         finishGame();
         return;
       }
