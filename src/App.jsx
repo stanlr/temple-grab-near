@@ -10,7 +10,7 @@ function App() {
   const [items, setItems] = useState([]);
   const [score, setScore] = useState(0);
   const [loot, setLoot] = useState(0);
-  const [best, setBest] = useState(() => Number(localStorage.getItem('temple-best') || 0));
+  const [best, setBest] = useState(() => Math.floor(Number(localStorage.getItem('temple-best')) || 0));
   const [status, setStatus] = useState('ready');
   const [muted, setMuted] = useState(true);
   const [wallet, setWallet] = useState('');
@@ -62,7 +62,7 @@ function App() {
     gameRef.current.running = false;
     setStatus('over');
     setBest((old) => {
-      const next = Math.max(old, gameRef.current.score);
+      const next = Math.max(old, Math.floor(gameRef.current.score));
       localStorage.setItem('temple-best', String(next));
       return next;
     });
@@ -93,6 +93,8 @@ function App() {
       const collisionY = 77;
       const hit = g.items.find((item) => item.lane === g.lane && item.y > collisionY - 5 && item.y < collisionY + 8);
       if (hit?.type === 'rock') {
+        setScore(Math.floor(g.score));
+        setDistance(Math.floor(g.score * 1.8));
         finishGame();
         return;
       }
