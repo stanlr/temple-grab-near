@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { NearConnector } from '@hot-labs/near-connect';
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Coins, Trophy, Zap, Volume2, VolumeX, Play, RotateCcw, Wallet, ShieldCheck, Sparkles } from 'lucide-react';
 
 const LANES = [0, 1, 2];
@@ -124,25 +123,6 @@ function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [move, status, startGame]);
 
-  useEffect(() => {
-    const connector = new NearConnector({ network: 'testnet', features: { testnet: true }, footerBranding: null });
-    connectorRef.current = connector;
-    const handleSignIn = async ({ accounts }) => {
-      setWallet(accounts?.[0]?.accountId || 'Connected');
-      try { setWalletInstance(await connector.wallet()); } catch { setWalletInstance(null); }
-    };
-    const handleSignOut = () => { setWallet(''); setWalletInstance(null); };
-    connector.on('wallet:signIn', handleSignIn);
-    connector.on('wallet:signOut', handleSignOut);
-    connector.wallet().then((activeWallet) => activeWallet.getAccounts()).then((accounts) => {
-      if (accounts?.length) { setWallet(accounts[0].accountId); setWalletInstance(activeWallet); }
-    }).catch(() => {});
-    return () => {
-      connector.off('wallet:signIn', handleSignIn);
-      connector.off('wallet:signOut', handleSignOut);
-    };
-  }, []);
-
   const submitScore = async () => {
     if (!walletInstance || !contractId) {
       setTxStatus('Deploy the testnet contract and set VITE_NEAR_CONTRACT_ID first.');
@@ -164,7 +144,16 @@ function App() {
 
   const connectWallet = async () => {
     try {
-      if (!connectorRef.current) return;
+      if (!connectorRef.current) {
+        const { NearConnector } = await import('@hot-labs/near-connect');
+        const connector = new NearConnector({ network: 'testnet', features: { testnet: true }, footerBranding: null });
+        connectorRef.current = connector;
+        connector.on('wallet:signIn', async ({ accounts }) => {
+          setWallet(accounts?.[0]?.accountId || 'Connected');
+          try { setWalletInstance(await connector.wallet()); } catch { setWalletInstance(null); }
+        });
+        connector.on('wallet:signOut', () => { setWallet(''); setWalletInstance(null); });
+      }
       if (wallet) await connectorRef.current.disconnect();
       else await connectorRef.current.connect();
     } catch (error) {
