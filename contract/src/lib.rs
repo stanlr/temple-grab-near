@@ -14,7 +14,7 @@ impl TempleGrab {
     #[init]
     pub fn new() -> Self {
         Self {
-            best_scores: UnorderedMap::new(b"best_scores"),
+            best_scores: UnorderedMap::new(b"best_scores".as_slice()),
         }
     }
 
