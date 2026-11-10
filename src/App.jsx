@@ -15,7 +15,10 @@ function App() {
   const [status, setStatus] = useState('ready');
   const [muted, setMuted] = useState(true);
   const [wallet, setWallet] = useState('');
+  const [walletInstance, setWalletInstance] = useState(null);
+  const [txStatus, setTxStatus] = useState('');
   const connectorRef = useRef(null);
+  const contractId = import.meta.env.VITE_NEAR_CONTRACT_ID;
   const [distance, setDistance] = useState(0);
   const [flash, setFlash] = useState(false);
   const gameRef = useRef({ lane: 1, items: [], lastSpawn: 0, lastTick: 0, score: 0, loot: 0, speed: STARTING_SPEED, running: false });
@@ -101,18 +104,39 @@ function App() {
   useEffect(() => {
     const connector = new NearConnector({ network: 'testnet', features: { testnet: true }, footerBranding: null });
     connectorRef.current = connector;
-    const handleSignIn = ({ accounts }) => setWallet(accounts?.[0]?.accountId || 'Connected');
-    const handleSignOut = () => setWallet('');
+    const handleSignIn = async ({ accounts }) => {
+      setWallet(accounts?.[0]?.accountId || 'Connected');
+      try { setWalletInstance(await connector.wallet()); } catch { setWalletInstance(null); }
+    };
+    const handleSignOut = () => { setWallet(''); setWalletInstance(null); };
     connector.on('wallet:signIn', handleSignIn);
     connector.on('wallet:signOut', handleSignOut);
     connector.wallet().then((activeWallet) => activeWallet.getAccounts()).then((accounts) => {
-      if (accounts?.length) setWallet(accounts[0].accountId);
+      if (accounts?.length) { setWallet(accounts[0].accountId); setWalletInstance(activeWallet); }
     }).catch(() => {});
     return () => {
       connector.off('wallet:signIn', handleSignIn);
       connector.off('wallet:signOut', handleSignOut);
     };
   }, []);
+
+  const submitScore = async () => {
+    if (!walletInstance || !contractId) {
+      setTxStatus('Deploy the testnet contract and set VITE_NEAR_CONTRACT_ID first.');
+      return;
+    }
+    try {
+      setTxStatus('Waiting for wallet approval...');
+      await walletInstance.signAndSendTransaction({
+        receiverId: contractId,
+        actions: [{ type: 'FunctionCall', params: { methodName: 'submit_score', args: { score: Math.floor(gameRef.current.score) }, gas: '30000000000000', deposit: '0' } }],
+      });
+      setTxStatus('Best score saved on NEAR testnet.');
+    } catch (error) {
+      console.error('Score submission failed:', error);
+      setTxStatus('Score submission was cancelled or failed.');
+    }
+  };
 
   const connectWallet = async () => {
     try {
@@ -178,6 +202,8 @@ function App() {
                 <h2>{status === 'over' ? 'RUN COMPLETE' : 'READY, RUNNER?'}</h2>
                 <p>{status === 'over' ? `You collected ${loot} relics and scored ${score} points. The ruins await your return.` : 'Collect the glowing relics. Avoid the stone traps. Stay alive as the temple gets faster.'}</p>
                 <button className="start-button" onClick={startGame}><Play size={16} fill="currentColor" /> {status === 'over' ? 'RUN IT BACK' : 'START RUN'}</button>
+                {status === 'over' && walletInstance && <button className="submit-score-button" onClick={submitScore}>SUBMIT BEST SCORE TO NEAR</button>}
+                {txStatus && <span className="tx-status">{txStatus}</span>}
                 <span className="overlay-hint">PRESS ENTER TO PLAY</span>
               </div>
             </div>}
