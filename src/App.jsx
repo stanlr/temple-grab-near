@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { NearConnector } from '@hot-labs/near-connect';
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Coins, Trophy, Zap, Volume2, VolumeX, Play, RotateCcw, Wallet, ShieldCheck, Sparkles } from 'lucide-react';
 
 const LANES = [0, 1, 2];
@@ -14,6 +15,7 @@ function App() {
   const [status, setStatus] = useState('ready');
   const [muted, setMuted] = useState(true);
   const [wallet, setWallet] = useState('');
+  const connectorRef = useRef(null);
   const [distance, setDistance] = useState(0);
   const [flash, setFlash] = useState(false);
   const gameRef = useRef({ lane: 1, items: [], lastSpawn: 0, lastTick: 0, score: 0, loot: 0, speed: STARTING_SPEED, running: false });
@@ -96,9 +98,32 @@ function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [move, status, startGame]);
 
-  const connectWallet = () => {
-    setWallet('Wallet integration coming next');
-    window.setTimeout(() => setWallet(''), 2400);
+  useEffect(() => {
+    const connector = new NearConnector({ network: 'testnet', features: { testnet: true }, footerBranding: null });
+    connectorRef.current = connector;
+    const handleSignIn = ({ accounts }) => setWallet(accounts?.[0]?.accountId || 'Connected');
+    const handleSignOut = () => setWallet('');
+    connector.on('wallet:signIn', handleSignIn);
+    connector.on('wallet:signOut', handleSignOut);
+    connector.wallet().then((activeWallet) => activeWallet.getAccounts()).then((accounts) => {
+      if (accounts?.length) setWallet(accounts[0].accountId);
+    }).catch(() => {});
+    return () => {
+      connector.off('wallet:signIn', handleSignIn);
+      connector.off('wallet:signOut', handleSignOut);
+    };
+  }, []);
+
+  const connectWallet = async () => {
+    try {
+      if (!connectorRef.current) return;
+      if (wallet) await connectorRef.current.disconnect();
+      else await connectorRef.current.connect();
+    } catch (error) {
+      console.error('NEAR wallet connection failed:', error);
+      setWallet('Connection failed');
+      window.setTimeout(() => setWallet(''), 2200);
+    }
   };
 
   return (
@@ -111,7 +136,7 @@ function App() {
         </a>
         <div className="top-actions">
           <div className="network-pill"><span className="pulse-dot" /> BUILT FOR NEAR</div>
-          <button className="wallet-button" onClick={connectWallet}><Wallet size={15} /> {wallet || 'Connect wallet'}</button>
+          <button className="wallet-button" onClick={connectWallet}><Wallet size={15} /> {wallet ? (wallet === 'Connection failed' ? wallet : `${wallet.slice(0, 6)}...${wallet.slice(-4)}`) : 'Connect wallet'}</button>
         </div>
       </header>
 
