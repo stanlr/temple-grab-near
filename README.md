@@ -2,23 +2,11 @@
 
 **Explore. Collect. Earn. Own.**
 
-Temple Grab is an arcade treasure-runner being rebuilt for the NEAR Hackathon 2026, Games With Real Economies track. The goal is to combine fast, accessible gameplay with a player-owned economy powered by NEAR.
+Temple Grab is a skill-first arcade treasure runner being rebuilt for the NEAR Hackathon 2026, primarily for **Games With Real Economies**.
 
-## Project status
+## Play locally
 
-🚧 Early development. This repository is the clean rebuild; the existing game remains available at https://temple-grab.netlify.app/ as a reference.
-
-Planned milestones:
-- [x] Establish a clean project repository
-- [ ] Build the playable arcade loop
-- [ ] Add NEAR wallet authentication
-- [ ] Add contract-backed score submissions and reward claims
-- [ ] Add player-owned collectibles
-- [ ] Add leaderboard and in-game merchant
-
-## Development
-
-Requirements: Node.js 20 or newer and npm.
+Requirements: Node.js 20+ and npm.
 
 ```bash
 npm install
@@ -27,13 +15,38 @@ npm run dev
 
 Open the local URL printed by Vite.
 
-## Hackathon direction
+## How to play
 
-The game will preserve a simple, skill-first arcade experience. NEAR integrations should create real utility: wallet identity, verifiable score/reward flows, and ownership of game collectibles. Testnet will be used during development. No real-money rewards are promised.
+- Press **Enter** or click **Start Run**.
+- Use **← / →** or **A / D** to switch lanes.
+- On mobile, use the left and right arrow controls.
+- Collect glowing relics and avoid falling stone traps.
+- Your best score is saved locally in your browser.
 
-## Security notes
+## Current implementation
 
-Client-side scores and browser storage are not trusted sources for payouts. Reward claims must be constrained by contract-side rules and validated game results before any valuable assets are distributed.
+- Responsive arcade game interface and three-lane runner loop.
+- Increasing game speed, collectible relics, obstacles, score and local best score.
+- Keyboard and touch-friendly controls.
+- NEAR-themed game economy UI.
+
+## Roadmap
+
+- [ ] NEAR wallet authentication (HOT Connect)
+- [ ] Contract-backed player profiles and leaderboard
+- [ ] Onchain collectible relics
+- [ ] NPC merchant with player-owned inventory
+- [ ] Secure, verifiable reward claims
+
+**Important:** Wallet, leaderboard, marketplace and reward panels are currently visual placeholders. No wallet is connected and no tokens or NFTs are currently issued. Client-side scores are not trusted for payouts. Those features will only be enabled after contract-side validation and limits are implemented.
+
+## Background
+
+This is a clean rebuild inspired by the original Temple Grab prototype at https://temple-grab.netlify.app/. The original is a reference for the game concept, not the codebase for this NEAR edition.
+
+## Track
+
+NEAR Hackathon 2026 — Games With Real Economies.
 
 ## License
 
