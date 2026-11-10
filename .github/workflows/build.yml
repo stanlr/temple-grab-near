@@ -16,8 +16,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
       - name: Install dependencies
         run: npm install
       - name: Build production app
         run: npm run build
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Build NEAR contract
+        run: cargo build --manifest-path contract/Cargo.toml --target wasm32-unknown-unknown --release
