@@ -17,6 +17,7 @@ function App() {
   const [wallet, setWallet] = useState('');
   const [walletInstance, setWalletInstance] = useState(null);
   const [txStatus, setTxStatus] = useState('');
+  const [leaderboard, setLeaderboard] = useState([]);
   const connectorRef = useRef(null);
   const contractId = import.meta.env.VITE_NEAR_CONTRACT_ID;
   const [distance, setDistance] = useState(0);
@@ -35,6 +36,28 @@ function App() {
     gameRef.current.lane = next;
     setLane(next);
   }, [status]);
+
+  const refreshLeaderboard = useCallback(async () => {
+    if (!contractId) return;
+    try {
+      const response = await fetch('https://rpc.testnet.near.org', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0', id: 'temple-grab', method: 'query',
+          params: { request_type: 'call_function', finality: 'final', account_id: contractId, method_name: 'get_leaderboard', args_base64: btoa(JSON.stringify({ limit: 5 })) },
+        }),
+      });
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message);
+      const entries = JSON.parse(new TextDecoder().decode(new Uint8Array(data.result.result)));
+      setLeaderboard(Array.isArray(entries) ? entries : []);
+    } catch (error) {
+      console.error('Could not load NEAR leaderboard:', error);
+    }
+  }, [contractId]);
+
+  useEffect(() => { refreshLeaderboard(); }, [refreshLeaderboard]);
 
   const finishGame = useCallback(() => {
     gameRef.current.running = false;
@@ -132,6 +155,7 @@ function App() {
         actions: [{ type: 'FunctionCall', params: { methodName: 'submit_score', args: { score: Math.floor(gameRef.current.score) }, gas: '30000000000000', deposit: '0' } }],
       });
       setTxStatus('Best score saved on NEAR testnet.');
+      await refreshLeaderboard();
     } catch (error) {
       console.error('Score submission failed:', error);
       setTxStatus('Score submission was cancelled or failed.');
@@ -231,7 +255,7 @@ function App() {
           </div>
           <div className="side-card leaderboard-card">
             <div className="card-heading"><span className="card-icon"><Sparkles size={16} /></span><span>HALL OF EXPLORERS</span></div>
-            <div className="empty-board"><Trophy size={21} /><span>THE FIRST LEGEND<br />COULD BE YOU.</span><small>Leaderboard opens with NEAR accounts.</small></div>
+            {leaderboard.length > 0 ? <div className="leaderboard-list">{leaderboard.map(([account, value], index) => <div className="leaderboard-row" key={account}><span className="leader-rank">{String(index + 1).padStart(2, '0')}</span><span className="leader-account">{account}</span><strong>{Number(value).toLocaleString()}</strong></div>)}</div> : <div className="empty-board"><Trophy size={21} /><span>THE FIRST LEGEND<br />COULD BE YOU.</span><small>{contractId ? 'No scores submitted yet.' : 'Leaderboard opens after testnet setup.'}</small></div>}
           </div>
         </aside>
       </section>
